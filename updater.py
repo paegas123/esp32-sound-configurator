@@ -14,6 +14,7 @@ Logika:
 
 import json
 import shutil
+import ssl
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -21,6 +22,18 @@ from pathlib import Path
 from typing import Optional
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+
+# Zabalené (PyInstaller) aplikace si někdy "nenajdou" systémové bezpečnostní
+# certifikáty, i když internet reálně funguje - projeví se to jako "není
+# dostupný internet", i když je. Pokud je k dispozici balíček certifi
+# (přibalený do .app/.exe), použijeme jeho certifikáty explicitně, ať se
+# tomu předejde. Pokud certifi není nainstalované (běžné spuštění přes
+# `python3 gui.py`), použije se prostě výchozí chování jako dřív.
+try:
+    import certifi
+    _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL_CONTEXT = None
 
 from paths import (
     GITHUB_API_LATEST_COMMIT,
@@ -51,7 +64,7 @@ def check_internet_and_get_latest_commit() -> Optional[RemoteVersionInfo]:
             GITHUB_API_LATEST_COMMIT,
             headers={"User-Agent": USER_AGENT, "Accept": "application/vnd.github+json"},
         )
-        with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS, context=_SSL_CONTEXT) as response:
             data = json.loads(response.read().decode("utf-8"))
         sha = data["sha"]
         date = data["commit"]["committer"]["date"]
@@ -93,7 +106,7 @@ def download_and_replace_snapshot(remote_info: RemoteVersionInfo, progress_callb
         zip_path = tmp_dir / "repo.zip"
 
         request = Request(GITHUB_ZIP_URL, headers={"User-Agent": USER_AGENT})
-        with urlopen(request, timeout=60) as response:
+        with urlopen(request, timeout=60, context=_SSL_CONTEXT) as response:
             zip_path.write_bytes(response.read())
 
         extract_dir = tmp_dir / "extracted"
