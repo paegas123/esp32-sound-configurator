@@ -16,9 +16,15 @@
 # doporučuje pro .app bundly - "onefile" na Macu dělá problémy s
 # bezpečnostními kontrolami systému). Na Windows zůstává jeden .exe.
 
+import os
 import sys
 
 is_mac = sys.platform == "darwin"
+
+# Ikony jsou volitelné - pokud zrovna nejsou vygenerované (např. lokální
+# test na Linuxu), sestavení proběhne dál, jen bez vlastní ikonky.
+mac_icon = "icon.icns" if os.path.exists("icon.icns") else None
+win_icon = "icon.ico" if os.path.exists("icon.ico") else None
 
 a = Analysis(
     ['gui.py'],
@@ -55,6 +61,7 @@ if is_mac:
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
+        icon=mac_icon,
     )
     coll = COLLECT(
         exe,
@@ -68,7 +75,7 @@ if is_mac:
     app = BUNDLE(
         coll,
         name='ESP32 Sound Configurator.app',
-        icon=None,
+        icon=mac_icon,
         bundle_identifier='cz.tomaspavlas.esp32soundconfigurator',
         info_plist={
             'NSHighResolutionCapable': 'True',
@@ -96,4 +103,5 @@ else:
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
+        icon=win_icon,
     )
