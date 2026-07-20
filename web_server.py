@@ -61,6 +61,14 @@ SETTINGS_FILE_TABS: list[tuple[str, str, str]] = [
 # --- globalni stav procesu (jednoduche, protoze jde o lokalni nastroj pro jednoho cloveka) ---
 _state_lock = threading.Lock()
 _current_vehicle_file: "vp.VehicleFile | None" = None
+
+# Program běží jako neviditelný server na pozadí - i po zavření okna
+# prohlížeče by jinak visel dál (viditelné jen v Aktivitě/Task Manageru).
+# Prohlížeč posílá pravidelný "jsem pořád otevřený" signál (viz
+# /api/heartbeat), a pokud dlouho nepřijde žádný požadavek vůbec, program
+# se sám tiše ukončí.
+_last_activity_time = time.time()
+_HEARTBEAT_TIMEOUT_SECONDS = 45
 _current_vehicle_entry: "vp.VehicleEntry | None" = None
 _jobs: dict[str, dict] = {}  # job_id -> {"lines": [...], "status": "running"/"done"/"error", "process": Popen|None}
 _job_counter = 0
@@ -384,6 +392,8 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------------------------------------------------------- GET
     def do_GET(self):
+        global _last_activity_time
+        _last_activity_time = time.time()
         parsed = urlparse(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
@@ -409,6 +419,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._api_get_tabs()
         if path == "/api/debug/export":
             return self._api_debug_export()
+        if path == "/api/heartbeat":
+            return self._send_json({"ok": True})
         if path == "/api/web-interface-choice":
             return self._api_get_web_interface_choice()
         if path.startswith("/api/sound/"):
@@ -438,6 +450,8 @@ class Handler(BaseHTTPRequestHandler):
 
     # --------------------------------------------------------------- POST
     def do_POST(self):
+        global _last_activity_time
+        _last_activity_time = time.time()
         path = urlparse(self.path).path
         try:
             body = self._read_json_body()
@@ -459,6 +473,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/debug/set-tab-tier": self._api_debug_set_tab_tier,
             "/api/debug/set-note": self._api_debug_set_note,
             "/api/web-interface-choice": self._api_set_web_interface_choice,
+            "/api/shutdown": self._api_shutdown,
             "/api/debug/clear": self._api_debug_clear,
             "/api/upload": self._api_start_upload,
             "/api/monitor/start": self._api_start_monitor,
@@ -583,6 +598,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _api_shutdown(self, body):
+        self._send_json({"ok": True})
+
+        def _do_shutdown():
+            time.sleep(0.3)  # dej strihanci cas odeslat odpoved prohlizeci
+            self.server.shutdown()
+
+        threading.Thread(target=_do_shutdown, daemon=True).start()
 
     def _api_vehicles(self):
         ensure_directories()
@@ -800,6 +824,21 @@ def run_server():
         webbrowser.open(url)
 
     threading.Thread(target=_open_browser_delayed, daemon=True).start()
+
+    def _watch_for_inactivity():
+        global _last_activity_time
+        # Dá prohlížeči čas se poprvé načíst a začít posílat heartbeat,
+        # než začneme počítat neaktivitu.
+        _last_activity_time = time.time()
+        while True:
+            time.sleep(5)
+            idle_seconds = time.time() - _last_activity_time
+            if idle_seconds > _HEARTBEAT_TIMEOUT_SECONDS:
+                print("Žádná aktivita v prohlížeči - program se sám ukončuje.")
+                server.shutdown()
+                return
+
+    threading.Thread(target=_watch_for_inactivity, daemon=True).start()
 
     print(f"ESP32 Sound Configurator GUI běží na {url}")
     print("Pro ukončení stiskni Ctrl+C v tomto okně.")

@@ -79,6 +79,26 @@ async function afterLanguageReady() {
   setupBottomBar();
   setupMonitorOverlay();
   setupDebugMode();
+  setupQuitButton();
+  startHeartbeat();
+}
+
+function startHeartbeat() {
+  // Dá programu na pozadí vědět, že je okno v prohlížeči pořád otevřené -
+  // pokud tenhle signál dlouho nepřijde (zavřeš kartu/prohlížeč), program
+  // se sám ukončí, ať nezůstává neviditelně běžet na pozadí.
+  setInterval(() => {
+    fetch("/api/heartbeat").catch(() => {});
+  }, 10000);
+}
+
+function setupQuitButton() {
+  document.getElementById("quit-button").addEventListener("click", async () => {
+    if (!confirm("Opravdu ukončit program? Zavře se i server na pozadí.")) return;
+    await apiPost("/api/shutdown");
+    document.body.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:16px;color:#7A776E;">Program byl ukončen. Tohle okno prohlížeče už můžeš zavřít.</div>';
+  });
 }
 
 function setupDebugMode() {
