@@ -1,0 +1,46 @@
+name: Sestavit aplikaci pro Mac a Windows
+
+# Spustí se automaticky při každém pushnutí do větve "main", nebo si to
+# lze spustit i ručně přes záložku "Actions" na GitHubu (tlačítko
+# "Run workflow").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Stáhnout kód
+        uses: actions/checkout@v4
+
+      - name: Připravit Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Nainstalovat PyInstaller
+        run: pip install pyinstaller
+
+      - name: Sestavit aplikaci
+        run: pyinstaller esp32_sound_configurator.spec
+
+      - name: Nahrát výsledek (Mac)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESP32-Sound-Configurator-Mac
+          path: dist/ESP32 Sound Configurator.app
+
+      - name: Nahrát výsledek (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESP32-Sound-Configurator-Windows
+          path: dist/ESP32 Sound Configurator.exe

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Sound Configurator</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="language-overlay" class="overlay hidden">
+  <div class="overlay-box">
+    <h2>Vyber jazyk / Choose language / Sprache wählen</h2>
+    <div class="language-buttons">
+      <button data-lang="cs">Čeština</button>
+      <button data-lang="en">English</button>
+      <button data-lang="de">Deutsch</button>
+    </div>
+    <button id="language-overlay-close" class="secondary-button" style="margin-top:12px; width:100%;">Zavřít / Close / Schließen</button>
+  </div>
+</div>
+
+<div id="update-banner" class="update-banner hidden"></div>
+
+<main class="page">
+
+  <header class="app-header">
+    <div class="app-header-title">
+      <span class="app-header-icon">🔊</span>
+      <div>
+        <h1>ESP32 Sound Configurator</h1>
+        <p id="app-subtitle">Nastavení zvukového modulu bez ručního úpravování kódu</p>
+      </div>
+    </div>
+    <a class="app-header-credit-badge" href="https://github.com/TheDIYGuy999/Rc_Engine_Sound_ESP32" target="_blank" rel="noopener">
+      <span id="app-credit-label">Postaveno nad projektem</span>
+      <strong>TheDIYGuy999 / Rc_Engine_Sound_ESP32</strong>
+      <span class="app-header-credit-arrow">→</span>
+    </a>
+  </header>
+
+  <div class="toolbar">
+    <select id="vehicle-select"><option>Načítám vozidla...</option></select>
+    <button id="monitor-button" class="pill-button accent">
+      <span class="icon">&#9679;</span> Co modul právě dělá
+    </button>
+    <button id="language-button" class="pill-button neutral" title="Změnit jazyk">🌐</button>
+    <button id="debug-toggle" class="pill-button neutral" title="Ladicí režim (nastavení barev)">🔧</button>
+  </div>
+
+  <div id="debug-bar" class="debug-bar hidden">
+    <span>Ladicí režim: klikni na barvu u položky nebo kategorie, kterou chceš změnit. Vše se hned ukládá na disk, nic se neztratí.</span>
+    <span id="save-flash" class="save-flash"></span>
+    <button id="debug-export" class="secondary-button">Exportovat soubor (záloha / poslat Claudovi)</button>
+    <button id="debug-reset" class="secondary-button">Vymazat vše</button>
+  </div>
+
+  <div id="tabs" class="tabs"></div>
+
+  <div id="tier-filter" class="tier-filter">
+    <label class="tier-filter-item tier-green">
+      <input type="radio" name="level-mode" id="filter-green" value="green">
+      Začátečník
+    </label>
+    <label class="tier-filter-item tier-yellow">
+      <input type="radio" name="level-mode" id="filter-yellow" value="yellow">
+      Pokročilý
+    </label>
+    <label class="tier-filter-item tier-red">
+      <input type="radio" name="level-mode" id="filter-red" value="red">
+      Expert
+    </label>
+  </div>
+
+  <div id="channel-map" class="channel-map hidden"></div>
+
+  <div id="categories"></div>
+
+  <div class="bottom-bar">
+    <span id="save-status" class="save-status"></span>
+    <button id="save-button" class="secondary-button">Uložit změny</button>
+    <button id="upload-button" class="primary-button">Nahrát do desky</button>
+  </div>
+
+  <div id="upload-log" class="log-panel hidden">
+    <div class="log-header">Nahrávání firmwaru</div>
+    <pre id="upload-log-content"></pre>
+  </div>
+
+  <footer class="app-footer">© Tomáš Pavlas</footer>
+
+</main>
+
+<div id="monitor-overlay" class="overlay hidden">
+  <div class="overlay-box monitor-box">
+    <div class="monitor-header">
+      <h2>Co modul právě dělá</h2>
+      <button id="monitor-close">Zavřít</button>
+    </div>
+    <p class="monitor-hint">Živý výpis toho, co modul právě posílá po USB kabelu - chybové hlášky, stavové zprávy, cokoliv, co ti modul chce sdělit.</p>
+    <pre id="monitor-log-content"></pre>
+  </div>
+</div>
+
+<audio id="sound-player"></audio>
+
+<script src="/app.js"></script>
+</body>
+</html>
