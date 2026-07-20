@@ -31,12 +31,18 @@ jobs:
       - name: Sestavit aplikaci
         run: pyinstaller esp32_sound_configurator.spec
 
+      - name: Zabalit .app do zipu (zachová strukturu složky)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent "ESP32 Sound Configurator.app" "ESP32-Sound-Configurator-Mac.zip"
+
       - name: Nahrát výsledek (Mac)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: ESP32-Sound-Configurator-Mac
-          path: dist/ESP32 Sound Configurator.app
+          path: dist/ESP32-Sound-Configurator-Mac.zip
 
       - name: Nahrát výsledek (Windows)
         if: runner.os == 'Windows'
