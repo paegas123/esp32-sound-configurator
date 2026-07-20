@@ -780,8 +780,20 @@ class Handler(BaseHTTPRequestHandler):
 
 def run_server():
     ensure_directories()
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = f"http://127.0.0.1:{PORT}/"
+
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    except OSError as e:
+        already_running = e.errno == 48 or "in use" in str(e).lower()
+        if already_running:
+            # Program uz jednou bezi na pozadi (napr. z minuleho spusteni,
+            # kdyz se jen zavrelo okno prohlizece) - misto padu proste
+            # otevreme prohlizec na tu uz bezici instanci.
+            print(f"Program už běží na pozadí - otevírám prohlížeč na {url}")
+            webbrowser.open(url)
+            return
+        raise
 
     def _open_browser_delayed():
         time.sleep(0.6)
@@ -789,7 +801,7 @@ def run_server():
 
     threading.Thread(target=_open_browser_delayed, daemon=True).start()
 
-    print(f"TankSound Configurator GUI běží na {url}")
+    print(f"ESP32 Sound Configurator GUI běží na {url}")
     print("Pro ukončení stiskni Ctrl+C v tomto okně.")
     try:
         server.serve_forever()
